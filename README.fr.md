@@ -44,7 +44,7 @@ Les fabricants de montres (Garmin PacePro, COROS Pace Strategy) et quelques site
 
 ## Récupérer ton export Strava
 
-1. Sur strava.com, ouvre [Paramètres, puis Mon compte](https://www.strava.com/settings/account).
+1. Sur strava.com, ouvre [Paramètres, puis Mon compte](https://www.strava.com/account).
 2. Sous « Télécharger ton compte », clique sur Commencer, puis demande le téléchargement.
 3. Strava t'envoie un e-mail avec l'archive, souvent en quelques heures.
 4. Dépose le `.zip` dans Ravito tel quel.

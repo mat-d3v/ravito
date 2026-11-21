@@ -44,7 +44,7 @@ Watch makers (Garmin PacePro, COROS Pace Strategy) and a few web tools already s
 
 ## Getting your Strava export
 
-1. On strava.com, open [Settings, then My Account](https://www.strava.com/settings/account).
+1. On strava.com, open [Settings, then My Account](https://www.strava.com/account).
 2. Under "Download your account", click Get Started, then request the download.
 3. Strava emails you the archive, usually within a few hours.
 4. Drop the `.zip` into Ravito as it is.

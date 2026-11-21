@@ -91,15 +91,7 @@ a { color: inherit; text-underline-offset: 0.15em; }
   align-items: center;
   gap: 0.4rem;
 }
-/* Le petit panneau jaune devant le nom reprend les panneaux de ravito du profil. */
-.wordmark::before {
-  content: '';
-  width: 0.7em;
-  height: 0.7em;
-  background: var(--signal);
-  border: 1.5px solid var(--ink);
-  border-radius: 1.5px;
-}
+.wordmark img { display: block; width: 1.15em; height: 1.15em; }
 
 /* ---------- Boutons ---------- */
 

@@ -99,7 +99,9 @@ function drawProfile(el: HTMLElement, W: number, course: Profile, plan: Plan | n
       for (const lbl of narrow ? [label] : [label, `${k + 1}`]) {
         w = textWidth(lbl) + 10;
         for (let r = 0; r < (narrow ? 1 : 2) && !spot; r++) {
-          for (const px of [xx, xx - w]) {
+          // Candidats : à droite du trait, à gauche, ou calé contre le bord droit (le panneau couvre toujours le trait).
+          for (const px of [xx, xx - w, W - w - 1]) {
+            if (px > xx || px + w < xx) continue;
             if (px >= pad.l - 2 && px + w <= W - 1 && free(r, px, px + w)) {
               spot = { r, px };
               break;

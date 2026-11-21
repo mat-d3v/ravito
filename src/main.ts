@@ -153,7 +153,7 @@ function addHistory(list: Parameters<typeof samplesFromActivity>[0][]) {
 
 function loadDemo() {
   const g = parseGPX(demoCourseGPX());
-  setCourse(g.name ?? 'Demo', g.points, g.waypoints);
+  setCourse(t().demoName, g.points, g.waypoints);
   state.aid[1].cutoff = '12:30';
   state.aid[2].cutoff = '15:30';
   state.history = null;
@@ -177,7 +177,7 @@ function render() {
 
   app.innerHTML = `
   <header class="masthead">
-    <a class="wordmark" href="./">Ravito</a>
+    <a class="wordmark" href="./"><img src="${import.meta.env.BASE_URL}logo.svg" alt="" width="30" height="30">Ravito</a>
     <button class="lang" id="lang" lang="${getLang() === 'fr' ? 'en' : 'fr'}">${getLang() === 'fr' ? 'English' : 'Français'}</button>
   </header>
 
@@ -536,5 +536,10 @@ function bind(plan: Plan | null, startMs: number) {
   if (plan) bindPlan(plan, startMs);
 }
 
+// ?lang=fr|en force la langue, ?demo charge directement la démo (lien partageable).
+const params = new URLSearchParams(location.search);
+const langParam = params.get('lang');
+if (langParam === 'fr' || langParam === 'en') setLang(langParam);
 document.documentElement.lang = getLang();
-render();
+if (params.has('demo')) loadDemo();
+else render();

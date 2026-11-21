@@ -1,0 +1,442 @@
+/* Ravito : l'esprit d'un roadbook d'organisateur et des panneaux de sentier.
+   Papier blanc, encre bleu nuit de carte, jaune balise comme unique accent. */
+
+:root {
+  --paper: #ffffff;
+  --ink: #1b2a3a;
+  --ink-2: #536170;
+  --rule: #d3dae0;
+  --wash: #eef2f5;
+  --signal: #f2c500;
+  --on-signal: #1b2a3a;
+  --late: #c22f2a;
+  --ok: #24704a;
+  --display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --text: 'Barlow', 'Helvetica Neue', Arial, sans-serif;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #111a23;
+    --ink: #e6ecf1;
+    --ink-2: #9fadba;
+    --rule: #2a3846;
+    --wash: #172330;
+    --late: #ff7a6e;
+    --ok: #6fd39c;
+    color-scheme: dark;
+  }
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 1.0625rem/1.5 var(--text);
+  font-variant-numeric: tabular-nums;
+  accent-color: var(--ink);
+}
+
+#app { max-width: 76rem; margin: 0 auto; padding: 0 16px 48px; }
+
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.visually-hidden {
+  position: absolute !important;
+  clip-path: inset(50%);
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  white-space: nowrap;
+}
+
+h1, h2, h3, p { margin: 0; }
+
+h1 {
+  font: 700 clamp(2.1rem, 1.2rem + 3.6vw, 3.6rem)/1.02 var(--display);
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+}
+
+h2 { font: 600 1.6rem/1.1 var(--display); margin-bottom: 0.5rem; }
+h3 { font: 600 1rem/1.3 var(--text); margin: 1.5rem 0 0.25rem; }
+
+a { color: inherit; text-underline-offset: 0.15em; }
+
+/* ---------- En-tête ---------- */
+
+.masthead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 0;
+  border-bottom: 1.5px solid var(--ink);
+  margin-bottom: clamp(24px, 5vw, 48px);
+}
+
+.wordmark {
+  font: 700 1.7rem/1 var(--display);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+/* Le petit panneau jaune devant le nom reprend les panneaux de ravito du profil. */
+.wordmark::before {
+  content: '';
+  width: 0.7em;
+  height: 0.7em;
+  background: var(--signal);
+  border: 1.5px solid var(--ink);
+  border-radius: 1.5px;
+}
+
+/* ---------- Boutons ---------- */
+
+button {
+  font: 600 1rem/1.2 var(--text);
+  color: var(--paper);
+  background: var(--ink);
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+}
+button.secondary { background: transparent; color: var(--ink); }
+button.lang, button.quiet {
+  background: none;
+  border: 0;
+  padding: 0.25rem 0;
+  color: var(--ink-2);
+  font-weight: 400;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+button.textbtn {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.2em;
+}
+button.lang:hover, button.quiet:hover { color: var(--ink); }
+
+/* ---------- Accueil ---------- */
+
+.intro { max-width: 44rem; }
+.intro .lede { margin: 1rem 0 1.75rem; color: var(--ink-2); max-width: 38rem; }
+.intro .aside { margin-top: 1rem; }
+.intro .privacy { margin-top: 0.5rem; color: var(--ink-2); font-size: 0.9375rem; }
+
+.drop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 1.5px dashed var(--ink-2);
+  border-radius: 3px;
+  background: var(--wash);
+  cursor: pointer;
+}
+.drop:hover, .drop.over { border-style: solid; border-color: var(--ink); }
+.drop:focus-within { outline: 2px solid var(--ink); outline-offset: 2px; }
+.drop.busy { cursor: progress; opacity: 0.7; }
+
+.drop-course { min-height: 14rem; padding: 2rem 1rem 6.5rem; overflow: hidden; }
+.drop-course .ridge {
+  position: absolute;
+  inset: auto 0 0 0;
+  width: 100%;
+  height: 38%;
+  fill: none;
+  stroke: var(--ink-2);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 5;
+  opacity: 0.5;
+  vector-effect: non-scaling-stroke;
+}
+.drop-title { position: relative; font: 700 1.7rem/1.1 var(--display); }
+.drop-hint { position: relative; color: var(--ink-2); font-size: 0.9375rem; }
+.drop-small { min-height: 4.5rem; padding: 0.75rem; color: var(--ink-2); font-size: 0.9375rem; margin: 0.75rem 0; }
+
+.error { margin-top: 0.75rem; color: var(--late); font-weight: 600; }
+
+/* ---------- Parcours ---------- */
+
+.course-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.5rem;
+  margin: 0.6rem 0 1.25rem;
+  color: var(--ink-2);
+}
+.facts b { font: 600 1.35rem/1 var(--display); color: var(--ink); }
+
+.profile { position: relative; margin: 0 -4px; }
+.chart { display: block; touch-action: pan-y; overflow: visible; }
+.chart .p-grid { stroke: var(--rule); stroke-width: 1; }
+.chart .p-axis { fill: var(--ink-2); font: 400 12px var(--text); }
+.chart .relief { fill: var(--ink); }
+.chart .pole { stroke: var(--ink); stroke-width: 1.5; }
+.chart .pole.late { stroke: var(--late); }
+.chart .pole-in { stroke: var(--paper); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.chart .plate rect { fill: var(--signal); stroke: var(--ink); stroke-width: 1.2; }
+.chart .plate text { fill: var(--on-signal); font: 600 12px var(--text); }
+.chart .plate.late rect { fill: var(--late); stroke: var(--late); }
+.chart .plate.late text { fill: #fff; }
+.chart .cursor { stroke: var(--signal); stroke-width: 2; }
+.chart .cursor-dot { fill: var(--signal); stroke: var(--ink); stroke-width: 1.5; }
+
+.tip {
+  position: absolute;
+  top: 0;
+  display: grid;
+  gap: 0 0.75rem;
+  grid-template-columns: auto auto;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.875rem;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* ---------- Espace de travail ---------- */
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+  gap: 3.5rem;
+  margin-top: clamp(32px, 6vw, 56px);
+}
+
+.settings > section { padding: 1.25rem 0 1.75rem; border-top: 1.5px solid var(--ink); }
+.settings > section:first-child { padding-top: 1rem; }
+
+.hint { color: var(--ink-2); font-size: 0.9375rem; }
+.summary { font-size: 0.9375rem; }
+.summary .textbtn { font-weight: 400; color: var(--ink-2); }
+.warn { color: var(--late); font-size: 0.9375rem; margin-top: 0.5rem; }
+
+.curve { margin-top: 0.25rem; }
+.legend { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; font-size: 0.875rem; color: var(--ink-2); }
+.legend span::before { content: ''; display: inline-block; width: 1.1rem; height: 0; vertical-align: middle; margin-right: 0.35rem; }
+.lg-you::before { border-top: 3px solid var(--ink); }
+.lg-generic::before { border-top: 2px dashed var(--ink-2); }
+.lg-bar::before { height: 0.6rem !important; background: var(--rule); }
+.chart .bar { fill: var(--rule); }
+.chart .curve-generic { fill: none; stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.chart .curve-you { fill: none; stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; }
+
+.field { display: flex; flex-direction: column; gap: 0.3rem; margin-top: 1rem; font-size: 0.9375rem; }
+.field > span { display: flex; justify-content: space-between; gap: 1rem; color: var(--ink-2); }
+.field output { color: var(--ink); font-weight: 600; }
+
+input {
+  font: inherit;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1.5px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.45rem 0.55rem;
+  min-width: 0;
+}
+input:hover { border-color: var(--ink-2); }
+input:focus-visible { outline: 2px solid var(--ink); outline-offset: 0; border-color: var(--ink); }
+input[type='number'] { width: 6rem; }
+.field input[type='text'] { width: 8rem; }
+
+.modes { border: 0; padding: 0; margin: 1rem 0 0; display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; }
+.modes label { display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer; }
+.modes input { width: 1.1rem; height: 1.1rem; margin: 0; }
+
+/* Curseurs : piste fine, remplissage encre, pouce rond. */
+input[type='range'] {
+  --track: 4px;
+  --thumb: 20px;
+  --pct: calc((var(--val, 50) - var(--min, 0)) / (var(--max, 100) - var(--min, 0)) * 100%);
+  appearance: none;
+  width: 100%;
+  height: 2rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+}
+input[type='range']::-webkit-slider-runnable-track {
+  height: var(--track);
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--ink) var(--pct), var(--rule) var(--pct));
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: var(--thumb);
+  height: var(--thumb);
+  margin-top: calc((var(--track) - var(--thumb)) / 2);
+  border-radius: 50%;
+  background: var(--paper);
+  border: 2.5px solid var(--ink);
+}
+input[type='range']::-moz-range-track { height: var(--track); border-radius: 2px; background: var(--rule); }
+input[type='range']::-moz-range-progress { height: var(--track); border-radius: 2px; background: var(--ink); }
+input[type='range']::-moz-range-thumb {
+  width: var(--thumb);
+  height: var(--thumb);
+  border-radius: 50%;
+  background: var(--paper);
+  border: 2.5px solid var(--ink);
+}
+input[type='range']:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+
+.aid-table { width: 100%; border-collapse: collapse; font-size: 0.9375rem; margin: 0.5rem 0 0.75rem; }
+.aid-table th { text-align: left; font-weight: 600; color: var(--ink-2); font-size: 0.8125rem; padding: 0 0.25rem 0.3rem; }
+.aid-table td { padding: 0.2rem 0.25rem; }
+.aid-table input { width: 100%; padding: 0.35rem 0.4rem; }
+.aid-table td:nth-child(2), .aid-table td:nth-child(3) { width: 4.2rem; }
+.aid-table td:nth-child(4) { width: 6.2rem; }
+.aid-table td:last-child { width: 1.8rem; }
+button.remove { background: none; border: 0; color: var(--ink-2); font-size: 1.3rem; line-height: 1; padding: 0.2rem 0.4rem; }
+button.remove:hover { color: var(--late); }
+
+/* ---------- Plan ---------- */
+
+.plan { min-width: 0; border-top: 1.5px solid var(--ink); padding-top: 1.25rem; }
+
+/* L'heure d'arrivée, présentée comme un dossard : fond jaune balise et quatre trous d'épingle. */
+.bib {
+  --hole: radial-gradient(circle, var(--paper) 0 4px, var(--ink) 4px 5.5px, transparent 5.5px);
+  display: inline-block;
+  min-width: min(100%, 20rem);
+  padding: 1.1rem 2.2rem 1.2rem;
+  background:
+    var(--hole) 12px 12px / 14px 14px no-repeat,
+    var(--hole) calc(100% - 12px) 12px / 14px 14px no-repeat,
+    var(--hole) 12px calc(100% - 12px) / 14px 14px no-repeat,
+    var(--hole) calc(100% - 12px) calc(100% - 12px) / 14px 14px no-repeat,
+    var(--signal);
+  color: var(--on-signal);
+  border-radius: 4px;
+}
+.bib-label { font-weight: 600; }
+.bib-time { font: 700 clamp(3.6rem, 2.4rem + 4vw, 5.6rem)/0.95 var(--display); letter-spacing: -0.01em; }
+.bib-sub { margin-top: 0.2rem; }
+.effort-used { margin: 0.75rem 0 1.5rem; }
+
+.table-wrap { overflow-x: auto; container-type: inline-size; }
+.table-wrap:focus-visible { outline-offset: 4px; }
+
+table.roadbook, table.splits { width: 100%; border-collapse: collapse; font-size: 0.9375rem; }
+.roadbook-title { font: 600 1.6rem/1.1 var(--display); margin: 0 0 0.6rem; }
+.roadbook thead th, .splits thead th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+  padding: 0 0.6rem 0.4rem;
+  border-bottom: 1.5px solid var(--ink);
+  white-space: nowrap;
+}
+.roadbook td, .roadbook tbody th, .splits td, .splits tbody th {
+  padding: 0.6rem;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: baseline;
+  text-align: left;
+}
+.roadbook .n, .splits .n { text-align: right; white-space: nowrap; }
+.roadbook thead th:first-child, .roadbook tbody th { padding-left: 0; }
+.roadbook tbody th { font-weight: 600; padding-left: 1.85rem; text-indent: -1.85rem; }
+.roadbook .eta { font: 700 1.3rem/1 var(--display); }
+.roadbook .eta small { display: block; font: 400 0.8125rem/1.3 var(--text); color: var(--ink-2); }
+.roadbook .margin { color: var(--ok); font-weight: 600; }
+.roadbook tr.late .margin { color: var(--late); }
+.roadbook tr.late th { box-shadow: inset 3px 0 var(--late); }
+
+.num-plate {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  margin-right: 0.5rem;
+  padding: 0 0.2rem;
+  background: var(--signal);
+  color: var(--on-signal);
+  border: 1.2px solid var(--ink);
+  border-radius: 1.5px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  vertical-align: 0.1em;
+}
+tr.late .num-plate { background: var(--late); border-color: var(--late); color: #fff; }
+
+/* Sur un conteneur étroit, chaque ravito devient un bloc avec ses libellés. */
+@container (width < 520px) {
+  .roadbook thead { display: none; }
+  .roadbook, .roadbook tbody, .roadbook tr, .roadbook th, .roadbook td { display: block; }
+  .roadbook tr { padding: 0.75rem 0; border-bottom: 1px solid var(--rule); display: grid; grid-template-columns: 1fr 1fr; gap: 0.2rem 1rem; }
+  .roadbook tbody th { grid-column: 1 / -1; border: 0; padding: 0 0 0.25rem; text-indent: 0; font-size: 1.05rem; }
+  .roadbook tr.late th { padding-left: 0.6rem; }
+  .roadbook td { border: 0; padding: 0; text-align: left; display: flex; justify-content: space-between; gap: 0.5rem; }
+  .roadbook td::before { content: attr(data-label); color: var(--ink-2); font: 400 0.875rem/1.4 var(--text); }
+  .roadbook .eta { font-size: 1.15rem; }
+  .roadbook .eta small { display: inline; margin-left: 0.35rem; }
+}
+
+.actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 1.5rem 0 1rem; }
+
+details { margin-top: 0.5rem; }
+details summary { cursor: pointer; font-weight: 600; padding: 0.4rem 0; }
+.splits { margin-top: 0.5rem; }
+
+footer {
+  margin-top: 4rem;
+  padding-top: 1rem;
+  border-top: 1.5px solid var(--ink);
+  color: var(--ink-2);
+  font-size: 0.875rem;
+  display: grid;
+  gap: 0.25rem;
+}
+
+@media (max-width: 899px) {
+  .workspace { grid-template-columns: minmax(0, 1fr); gap: 2.5rem; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .drop { transition: border-color 0.12s, background-color 0.12s; }
+}
+
+#band { display: none; }
+
+@media print {
+  body { background: #fff; color: #000; }
+  #app > *:not(#band) { display: none !important; }
+  #band { display: block; width: 6.5cm; font: 9pt/1.25 var(--text); color: #000; border: 1px solid #000; padding: 4px 5px; }
+  #band .band-title { font: 700 11pt/1.1 var(--display); }
+  #band .band-sub { margin-bottom: 3px; }
+  #band table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+  #band th, #band td { padding: 1px 3px; border-bottom: 0.5px solid #999; color: #000; text-align: left; }
+}
+
+.tip[hidden] { display: none; }
+.num-plate { text-indent: 0; }

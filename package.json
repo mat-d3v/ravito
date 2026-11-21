@@ -1,0 +1,25 @@
+{
+  "name": "ravito",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.3",
+    "vite": "^6.3.5",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@fontsource/barlow": "^5.2.5",
+    "@fontsource/barlow-condensed": "^5.2.5",
+    "fflate": "^0.8.2",
+    "fit-file-parser": "^1.21.0"
+  },
+  "description": "Trail race planner calibrated on your own runs. Runs entirely in the browser.",
+  "license": "MIT"
+}

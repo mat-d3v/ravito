@@ -1,0 +1,170 @@
+const fr = {
+  title: 'Tes temps de passage aux ravitos, calculés d’après tes propres sorties.',
+  intro:
+    'Ravito découpe le parcours selon la pente et applique la vitesse que tu tiens réellement en montée, sur le plat et en descente. Tu obtiens une heure de passage à chaque ravito, ta marge sur les barrières horaires et un bracelet à imprimer.',
+  dropCourse: 'Dépose le GPX de ta course',
+  dropCourseHint: 'ou clique pour le choisir. GPX, TCX ou FIT.',
+  demoPrefix: 'Pas de GPX sous la main ?',
+  demo: 'Essayer avec un parcours de démo',
+  privacy: 'Tes fichiers restent sur ton ordinateur : Ravito fait tous ses calculs dans le navigateur et n’envoie rien.',
+  changeCourse: 'Changer de parcours',
+  max: 'point culminant',
+  historyTitle: 'Tes sorties',
+  historyHint: 'Dépose tes sorties ou ton export Strava (archive .zip ou dossier). La marche, la rando et le vélo sont écartés.',
+  dropHistory: 'Glisse tes fichiers ou ton dossier ici',
+  reading: 'Lecture',
+  historySummary: (used: number, hours: string, skipped: number) =>
+    `${used} sortie${used > 1 ? 's' : ''} retenue${used > 1 ? 's' : ''}, ${hours} h de course analysées${skipped ? `, ${skipped} écartée${skipped > 1 ? 's' : ''}` : ''}.`,
+  notEnough: 'Pas assez de données : il faut au moins 20 minutes de course avec l’heure et l’altitude. Ravito utilise le modèle générique en attendant.',
+  noHistory: 'Sans sorties, Ravito part d’un modèle générique réglé sur ta vitesse sur le plat.',
+  flatSpeed: 'Vitesse sur le plat, en km/h',
+  flatMeasured: (v: string) => `Sur le plat, tu tiens ${v} km/h.`,
+  removeHistory: 'Retirer les sorties',
+  curveTitle: 'Ta vitesse selon la pente',
+  curveYou: 'toi',
+  curveGeneric: 'modèle générique',
+  curveData: 'temps de données',
+  raceTitle: 'Départ et objectif',
+  start: 'Départ',
+  modePredict: 'Prédire mon temps',
+  modeTarget: 'Viser un temps',
+  effort: 'Intensité par rapport à tes sorties',
+  target: 'Temps visé, en h:mm',
+  endurance: 'Baisse de régime avec la fatigue',
+  enduranceLow: 'faible',
+  enduranceMid: 'moyenne',
+  enduranceHigh: 'forte',
+  aidTitle: 'Ravitos',
+  aidName: 'Nom',
+  aidKm: 'Km',
+  aidStop: 'Arrêt (min)',
+  aidCutoff: 'Barrière',
+  aidEmpty: 'Aucun ravito sur ce parcours pour l’instant.',
+  addAid: 'Ajouter un ravito',
+  remove: 'Retirer',
+  start0: 'Départ',
+  finish: 'Arrivée',
+  planTitle: 'Ton plan',
+  planEmpty: 'Ton plan s’affichera ici dès que le parcours sera chargé.',
+  finishAt: 'Arrivée prévue',
+  totalTime: (t: string, s: string) => `en ${t}, dont ${s} d’arrêts`,
+  effortUsed: (p: number, personal: boolean) =>
+    `Intensité ${p} % ${personal ? 'de tes sorties' : 'du modèle générique'}.`,
+  roadbook: 'Temps de passage par ravito',
+  section: 'Ravito',
+  km: 'Km',
+  climb: 'D+ / D−',
+  leg: 'Tronçon',
+  arrival: 'Passage',
+  stop: 'Arrêt',
+  cutoff: 'Barrière',
+  margin: 'Marge',
+  late: 'hors délai',
+  splits: 'Temps kilomètre par kilomètre',
+  pace: 'Allure',
+  elapsed: 'Temps',
+  exportCsv: 'Exporter en CSV',
+  printBand: 'Imprimer le bracelet',
+  day: 'J',
+  footer: 'Ravito est un logiciel libre (licence MIT).',
+  source: 'Code source',
+  model: 'Modèle de vitesse : coût énergétique de la course en pente (Minetti, 2002), recalé sur tes sorties.',
+  fileError: 'Impossible de lire ce fichier. Ravito accepte les GPX, TCX et FIT, éventuellement compressés en .gz.',
+};
+
+export type Dict = typeof fr;
+
+const en: Dict = {
+  title: 'Your aid station times, worked out from your own runs.',
+  intro:
+    'Ravito splits the course by gradient and applies the speed you actually hold uphill, on the flat and downhill. You get an arrival time at every aid station, your margin on each cutoff, and a pace band to print.',
+  dropCourse: 'Drop your race GPX',
+  dropCourseHint: 'or click to choose it. GPX, TCX or FIT.',
+  demoPrefix: 'No GPX at hand?',
+  demo: 'Try a demo course',
+  privacy: 'Your files stay on your computer: Ravito does all its work in the browser and sends nothing.',
+  changeCourse: 'Change course',
+  max: 'high point',
+  historyTitle: 'Your runs',
+  historyHint: 'Drop your runs or your Strava export (.zip or folder). Walks, hikes and rides are left out.',
+  dropHistory: 'Drop your files or folder here',
+  reading: 'Reading',
+  historySummary: (used: number, hours: string, skipped: number) =>
+    `${used} run${used > 1 ? 's' : ''} used, ${hours} h of running analysed${skipped ? `, ${skipped} left out` : ''}.`,
+  notEnough: 'Not enough data: at least 20 minutes of running with time and elevation are needed. Ravito uses the generic model meanwhile.',
+  noHistory: 'Without runs, Ravito starts from a generic model set to your flat speed.',
+  flatSpeed: 'Flat speed, in km/h',
+  flatMeasured: (v: string) => `On the flat, you hold ${v} km/h.`,
+  removeHistory: 'Remove runs',
+  curveTitle: 'Your speed by gradient',
+  curveYou: 'you',
+  curveGeneric: 'generic model',
+  curveData: 'time of data',
+  raceTitle: 'Start and goal',
+  start: 'Start',
+  modePredict: 'Predict my time',
+  modeTarget: 'Aim for a time',
+  effort: 'Intensity compared with your runs',
+  target: 'Target time, h:mm',
+  endurance: 'Slowdown with fatigue',
+  enduranceLow: 'low',
+  enduranceMid: 'medium',
+  enduranceHigh: 'high',
+  aidTitle: 'Aid stations',
+  aidName: 'Name',
+  aidKm: 'Km',
+  aidStop: 'Stop (min)',
+  aidCutoff: 'Cutoff',
+  aidEmpty: 'No aid stations on this course yet.',
+  addAid: 'Add an aid station',
+  remove: 'Remove',
+  start0: 'Start',
+  finish: 'Finish',
+  planTitle: 'Your plan',
+  planEmpty: 'Your plan will show here as soon as the course is loaded.',
+  finishAt: 'Expected finish',
+  totalTime: (t: string, s: string) => `in ${t}, including ${s} of stops`,
+  effortUsed: (p: number, personal: boolean) => `Intensity ${p} % of ${personal ? 'your runs' : 'the generic model'}.`,
+  roadbook: 'Arrival time at each aid station',
+  section: 'Aid station',
+  km: 'Km',
+  climb: 'Gain / loss',
+  leg: 'Leg',
+  arrival: 'Arrival',
+  stop: 'Stop',
+  cutoff: 'Cutoff',
+  margin: 'Margin',
+  late: 'too late',
+  splits: 'Kilometre splits',
+  pace: 'Pace',
+  elapsed: 'Time',
+  exportCsv: 'Export CSV',
+  printBand: 'Print pace band',
+  day: 'D',
+  footer: 'Ravito is free software (MIT licence).',
+  source: 'Source code',
+  model: 'Speed model: energy cost of running on slopes (Minetti, 2002), calibrated on your runs.',
+  fileError: 'This file could not be read. Ravito accepts GPX, TCX and FIT, optionally compressed as .gz.',
+};
+
+const dicts = { fr, en };
+export type Lang = keyof typeof dicts;
+
+let lang: Lang = navigator.language?.toLowerCase().startsWith('fr') ? 'fr' : 'en';
+try {
+  const saved = localStorage.getItem('ravito.lang');
+  if (saved === 'fr' || saved === 'en') lang = saved;
+} catch {
+  /* stockage indisponible */
+}
+
+export const t = (): Dict => dicts[lang];
+export const getLang = () => lang;
+export function setLang(l: Lang) {
+  lang = l;
+  try {
+    localStorage.setItem('ravito.lang', l);
+  } catch {
+    /* stockage indisponible */
+  }
+}

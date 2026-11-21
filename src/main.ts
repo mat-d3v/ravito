@@ -211,6 +211,11 @@ function render() {
       <section aria-labelledby="h-history">
         <h2 id="h-history">${esc(T.historyTitle)}</h2>
         <p class="hint">${esc(T.historyHint)}</p>
+        <details class="how">
+          <summary>${esc(T.exportHow)}</summary>
+          <ol>${T.exportSteps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
+          <p><a href="https://www.strava.com/settings/account" target="_blank" rel="noopener noreferrer">${esc(T.exportLink)}</a><br><a href="https://support.strava.com/en-us/articles/15401919-how-do-i-export-my-strava-data" target="_blank" rel="noopener noreferrer">${esc(T.exportHelp)}</a></p>
+        </details>
         <label class="drop drop-small${state.busy === 'history' ? ' busy' : ''}" id="drop-history">
           <input type="file" accept=".gpx,.tcx,.fit,.gz,.zip,.csv" multiple class="visually-hidden">
           <span id="hist-progress">${esc(state.busy === 'history' ? T.reading : T.dropHistory)}</span>

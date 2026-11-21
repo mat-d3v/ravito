@@ -12,6 +12,15 @@ const fr = {
   historyTitle: 'Tes sorties',
   historyHint: 'Dépose tes sorties ou ton export Strava (archive .zip ou dossier). La marche, la rando et le vélo sont écartés.',
   dropHistory: 'Glisse tes fichiers ou ton dossier ici',
+  exportHow: 'Récupérer ton export Strava',
+  exportSteps: [
+    'Ouvre la page Mon compte de Strava.',
+    'Sous « Télécharger ton compte », clique sur Commencer, puis demande le téléchargement.',
+    'Strava t’envoie un e-mail avec l’archive, souvent en quelques heures.',
+    'Dépose le fichier .zip ici, sans le décompresser.',
+  ],
+  exportLink: 'Ouvrir Mon compte sur Strava',
+  exportHelp: 'Aide de Strava sur l’export',
   reading: 'Lecture',
   historySummary: (used: number, hours: string, skipped: number) =>
     `${used} sortie${used > 1 ? 's' : ''} retenue${used > 1 ? 's' : ''}, ${hours} h de course analysées${skipped ? `, ${skipped} écartée${skipped > 1 ? 's' : ''}` : ''}.`,
@@ -88,6 +97,15 @@ const en: Dict = {
   historyTitle: 'Your runs',
   historyHint: 'Drop your runs or your Strava export (.zip or folder). Walks, hikes and rides are left out.',
   dropHistory: 'Drop your files or folder here',
+  exportHow: 'Get your Strava export',
+  exportSteps: [
+    'Open the My Account page on Strava.',
+    'Under “Download your account”, click Get Started, then request the download.',
+    'Strava emails you the archive, usually within a few hours.',
+    'Drop the .zip file here, without unzipping it.',
+  ],
+  exportLink: 'Open My Account on Strava',
+  exportHelp: 'Strava help on exporting',
   reading: 'Reading',
   historySummary: (used: number, hours: string, skipped: number) =>
     `${used} run${used > 1 ? 's' : ''} used, ${hours} h of running analysed${skipped ? `, ${skipped} left out` : ''}.`,

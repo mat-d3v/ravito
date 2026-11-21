@@ -55,10 +55,12 @@ More in [Strava's help](https://support.strava.com/en-us/articles/15401919-how-d
 
 1. **Course**: the track is resampled every 25 m and the elevation smoothed over 150 m before grades are computed.
 2. **Generic curve**: speed relative to flat ground follows the energy cost of running on slopes (Minetti et al., 2002), softened for hiking on steep climbs. On descents, the gain is capped at about +10 % around −8 %, then speed drops on steep, technical ground.
-3. **Your curve**: each run is cut into 100 m pieces (stops removed). For each 2 % gradient class, your median speed is blended with the generic curve according to how many minutes of data you have. On climbs, speed is forced to keep decreasing as the slope steepens.
+3. **Your curve**: each run is cut into 100 m pieces (stops removed). Walks tagged as runs on Strava are left out: their median speed on rolling terrain is under 6.5 km/h. Recent runs count more (60-day half-life), so the curve follows your current fitness. For each 2 % gradient class, your median speed is blended with the generic curve according to how much data you have. On climbs, speed is forced to keep decreasing as the slope steepens.
 4. **Race simulation**: every 25 m, speed = your curve × intensity × fatigue factor. Fatigue kicks in after 1.5 h (training runs already include it) and grows with elapsed time; the "slowdown with fatigue" slider sets how fast.
 
 The engine (`src/engine/`) is pure TypeScript with no DOM, covered by unit tests: recovering a known runner's curve from synthetic runs, ignoring pauses, rejecting bike rides, solving a target time, aid-station timing.
+
+**How accurate is it?** `npm run backtest -- "<Strava export folder>"` predicts each of your runs from your earlier runs only, and reports the error. On a test history of 99 runs, the median error on moving time is 4.3 % (mean 5.5 %). Most of that error comes from runs done at different intensities, which no model can know in advance.
 
 ## Running it locally
 

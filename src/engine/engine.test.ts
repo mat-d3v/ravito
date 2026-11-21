@@ -185,3 +185,25 @@ describe('export Strava', () => {
     expect(m.size).toBe(2);
   });
 });
+
+describe('historique : marches et récence', () => {
+  it('écarte une marche étiquetée « course », mais pas une sortie trail où l’on marche en montée', async () => {
+    const { samplesFromActivity } = await import('./model');
+    const walk = samplesFromActivity(line(6000, () => 0, 10, () => 1.4));
+    expect(walk.samples).toHaveLength(0);
+    expect(walk.skipped).toMatch(/marche/);
+    // Montée raide marchée (0,8 m/s), puis replat couru (3 m/s) : c'est bien une sortie de course.
+    const trail = samplesFromActivity(line(8000, (x) => (x < 3000 ? x * 0.2 : 600), 10, (g) => (g > 0.1 ? 0.8 : 3)));
+    expect(trail.samples.length).toBeGreaterThan(0);
+  });
+
+  it('donne plus de poids aux sorties récentes', () => {
+    const day = 86_400_000;
+    const old = Array.from({ length: 60 }, () => ({ grade: 0, speed: 2.5, dur: 60, when: 0 }));
+    const recent = Array.from({ length: 60 }, () => ({ grade: 0, speed: 3.2, dur: 60, when: 365 * day }));
+    const c = fitCurve([...old, ...recent])!;
+    expect(c.flat).toBeCloseTo(3.2, 1);
+    const flatWeights = fitCurve([...old, ...recent], { halfLifeDays: null })!;
+    expect(flatWeights.flat).toBeLessThan(3.2);
+  });
+});

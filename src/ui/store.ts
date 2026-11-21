@@ -41,8 +41,9 @@ export function save(s: Saved): void {
       course: s.course ? { name: s.course.name, profile: packProfile(s.course.profile) } : null,
       history: s.history
         ? {
-            // Échantillons à plat : pente, vitesse, durée.
-            s: s.history.samples.flatMap((x) => [r(x.grade, 4), r(x.speed, 3), r(x.dur, 1)]),
+            // Échantillons à plat : pente, vitesse, durée, date de la sortie (en minutes, pour pondérer les récentes).
+            k: 4,
+            s: s.history.samples.flatMap((x) => [r(x.grade, 4), r(x.speed, 3), r(x.dur, 1), x.when != null ? Math.round(x.when / 60000) : 0]),
             used: s.history.used,
             skipped: s.history.skipped,
             seconds: s.history.seconds,
@@ -63,7 +64,9 @@ export function load(): Saved | null {
     const o = JSON.parse(raw);
     const samples: Sample[] = [];
     const flat: number[] = o.history?.s ?? [];
-    for (let i = 0; i + 2 < flat.length; i += 3) samples.push({ grade: flat[i], speed: flat[i + 1], dur: flat[i + 2] });
+    const k: number = o.history?.k ?? 3;
+    for (let i = 0; i + k - 1 < flat.length; i += k)
+      samples.push({ grade: flat[i], speed: flat[i + 1], dur: flat[i + 2], when: k > 3 && flat[i + 3] ? flat[i + 3] * 60000 : undefined });
     return {
       course: o.course ? { name: o.course.name, profile: unpackProfile(o.course.profile) } : null,
       history: o.history ? { samples, used: o.history.used, skipped: o.history.skipped, seconds: o.history.seconds } : null,

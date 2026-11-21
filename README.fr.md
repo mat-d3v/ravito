@@ -55,10 +55,12 @@ Plus de détails dans [l'aide de Strava](https://support.strava.com/en-us/articl
 
 1. **Parcours** : la trace est rééchantillonnée tous les 25 m et l'altitude lissée sur 150 m avant le calcul des pentes.
 2. **Courbe générique** : la vitesse par rapport au plat suit le coût énergétique de la course en pente (Minetti et al., 2002), adouci pour la marche dans les fortes montées. En descente, le gain est plafonné à environ +10 % vers −8 %, puis la vitesse baisse dans les pentes raides et techniques.
-3. **Ta courbe** : chaque sortie est découpée en morceaux de 100 m, pauses exclues. Pour chaque classe de pente de 2 %, ta vitesse médiane est mélangée à la courbe générique selon le nombre de minutes de données. En montée, la vitesse ne peut que baisser quand la pente augmente.
+3. **Ta courbe** : chaque sortie est découpée en morceaux de 100 m, pauses exclues. Les marches étiquetées « course » sur Strava sont écartées : leur vitesse médiane sur terrain roulant est sous 6,5 km/h. Les sorties récentes comptent davantage (demi-vie de 60 jours), pour suivre ta forme du moment. Pour chaque classe de pente de 2 %, ta vitesse médiane est mélangée à la courbe générique selon le volume de données. En montée, la vitesse ne peut que baisser quand la pente augmente.
 4. **Simulation** : tous les 25 m, vitesse = ta courbe × intensité × facteur de fatigue. La fatigue s'applique après 1 h 30 (tes sorties l'incluent déjà) et augmente avec le temps écoulé ; le curseur « baisse de régime avec la fatigue » règle sa vitesse.
 
 Le moteur (`src/engine/`) est en TypeScript pur, sans DOM, et couvert par des tests : il retrouve la courbe d'un coureur connu à partir de sorties synthétiques, ignore les pauses, écarte le vélo, atteint un temps visé et place correctement les ravitos.
+
+**Quelle précision ?** `npm run backtest -- "<dossier de l'export Strava>"` prédit chacune de tes sorties à partir des seules sorties précédentes et mesure l'écart. Sur un historique test de 99 sorties, l'erreur médiane sur le temps de déplacement est de 4,3 % (moyenne 5,5 %). L'essentiel de cette erreur vient des sorties faites à des intensités différentes, qu'aucun modèle ne peut deviner.
 
 ## Lancer en local
 

@@ -44,9 +44,9 @@ export function gradeBins(): number[] {
   return out;
 }
 
-export function baselineCurve(flat: number): Curve {
+export function baselineCurve(flat: number, baseline: (g: number) => number = baselineFactor): Curve {
   const grades = gradeBins();
-  return { grades, speeds: grades.map((g) => flat * baselineFactor(g)), samples: grades.map(() => 0), flat, personal: false };
+  return { grades, speeds: grades.map((g) => flat * baseline(g)), samples: grades.map(() => 0), flat, personal: false };
 }
 
 /** Vitesse (m/s) pour une pente, par interpolation linéaire entre classes. */
@@ -65,12 +65,16 @@ export interface Sample {
   speed: number;
   /** Durée en secondes. */
   dur: number;
+  /** Début de la sortie (ms epoch), pour pondérer les sorties récentes. */
+  when?: number;
 }
 
 export interface ActivitySummary {
   samples: Sample[];
   distance: number;
   duration: number;
+  /** Début de la sortie (ms epoch), ou null si inconnu. */
+  start: number | null;
   skipped: string | null;
 }
 
@@ -78,8 +82,9 @@ const CHUNK = 100; // mètres par échantillon
 const STEP = 25;
 
 /** Découpe une sortie horodatée en morceaux de 100 m (pente, vitesse, durée), pauses exclues. */
-export function samplesFromActivity(points: RawPoint[]): ActivitySummary {
-  const empty = (skipped: string): ActivitySummary => ({ samples: [], distance: 0, duration: 0, skipped });
+export function samplesFromActivity(points: RawPoint[], opts: { keepWalks?: boolean } = {}): ActivitySummary {
+  const start = points.find((pt) => pt.time != null)?.time ?? null;
+  const empty = (skipped: string): ActivitySummary => ({ samples: [], distance: 0, duration: 0, start, skipped });
   if (points.length < 10) return empty('trop peu de points');
   let p;
   try {
@@ -111,10 +116,27 @@ export function samplesFromActivity(points: RawPoint[]): ActivitySummary {
     const dur = t[i + per] - t[i];
     const speed = d / dur;
     if (speed > 7) continue;
-    samples.push({ grade: (p.ele[i + per] - p.ele[i]) / d, speed, dur });
+    samples.push({ grade: (p.ele[i + per] - p.ele[i]) / d, speed, dur, when: start ?? undefined });
     duration += dur;
   }
-  return { samples, distance: total, duration, skipped: samples.length ? null : 'aucun passage exploitable' };
+  if (!samples.length) return { samples, distance: total, duration, start, skipped: 'aucun passage exploitable' };
+  if (!opts.keepWalks && looksLikeWalk(samples)) return { samples: [], distance: total, duration: 0, start, skipped: 'marche plutôt que course' };
+  return { samples, distance: total, duration, start, skipped: null };
+}
+
+/** Vitesse médiane sur terrain roulant en dessous de laquelle une sortie est de la marche (1,8 m/s = 6,5 km/h). */
+export const WALK_SPEED = 1.8;
+
+/**
+ * Une sortie étiquetée « course » peut être une marche ou une rando (erreur fréquente sur Strava).
+ * On regarde la vitesse médiane sur les passages roulants (pente entre -5 et +5 %), là où un coureur court :
+ * marcher dans les fortes montées, normal en trail, n'est donc pas pénalisé.
+ */
+export function looksLikeWalk(samples: Sample[]): boolean {
+  const rolling = samples.filter((s) => Math.abs(s.grade) < 0.05);
+  const secs = rolling.reduce((a, s) => a + s.dur, 0);
+  if (secs < 5 * 60) return false;
+  return weightedMedian(rolling.map((s) => s.speed), rolling.map((s) => s.dur)) < WALK_SPEED;
 }
 
 function weightedMedian(values: number[], weights: number[]): number {
@@ -128,30 +150,54 @@ function weightedMedian(values: number[], weights: number[]): number {
   return values[idx[idx.length - 1]];
 }
 
-/** Minutes de données au-delà desquelles une classe fait davantage confiance aux données qu'au modèle. */
-const PRIOR_MIN = 10;
 /** En dessous de ce volume total, l'historique est jugé insuffisant. */
 export const MIN_MINUTES = 20;
 
+export interface FitOptions {
+  /** Minutes de données au-delà desquelles une classe fait davantage confiance aux données qu'au modèle. */
+  priorMin?: number;
+  /** Modèle générique utilisé comme a priori (vitesse relative au plat selon la pente). */
+  baseline?: (g: number) => number;
+  /** Demi-vie (jours) de la pondération des sorties récentes ; null = toutes les sorties comptent pareil. */
+  halfLifeDays?: number | null;
+  /** Date de référence (ms) pour la pondération ; par défaut la sortie la plus récente. */
+  now?: number;
+}
+
+// Demi-vie de 60 jours : retenue sur un banc d'essai réel (scripts/backtest.ts), où elle réduit l'erreur
+// de prédiction sur les sorties futures (4,8 % → 4,3 % d'erreur médiane) en suivant l'évolution de la forme.
+export const DEFAULT_FIT: Required<Omit<FitOptions, 'now'>> = { priorMin: 10, baseline: baselineFactor, halfLifeDays: 60 };
+
 /**
  * Recale la courbe sur l'historique :
- * 1. vitesse équivalente plat = médiane pondérée de vitesse / facteur générique ;
+ * 1. vitesse équivalente plat = médiane pondérée des vitesses sur le plat (ou de vitesse / facteur générique) ;
  * 2. pour chaque classe de pente, médiane pondérée des vitesses observées,
  *    mélangée avec le modèle générique selon le volume de données ;
  * 3. en montée, la vitesse ne peut pas remonter quand la pente augmente.
  */
-export function fitCurve(samples: Sample[]): Curve | null {
+export function fitCurve(samples: Sample[], options: FitOptions = {}): Curve | null {
+  const { priorMin, baseline, halfLifeDays } = { ...DEFAULT_FIT, ...options };
   const total = samples.reduce((s, x) => s + x.dur, 0);
   if (total < MIN_MINUTES * 60) return null;
+
+  // Poids = durée, éventuellement atténuée pour les sorties anciennes.
+  let weight = (s: Sample) => s.dur;
+  if (halfLifeDays) {
+    const now = options.now ?? Math.max(...samples.map((s) => s.when ?? -Infinity));
+    if (Number.isFinite(now)) {
+      const k = Math.LN2 / (halfLifeDays * 86_400_000);
+      weight = (s) => s.dur * (s.when != null ? Math.exp(-k * Math.max(0, now - s.when)) : 1);
+    }
+  }
 
   // Vitesse sur le plat : mesurée directement si on a assez de terrain plat,
   // sinon déduite de toutes les pentes via le modèle générique.
   const flatOnes = samples.filter((s) => Math.abs(s.grade) < 0.03);
-  const useFlat = flatOnes.reduce((s, x) => s + x.dur, 0) >= PRIOR_MIN * 60;
+  const useFlat = flatOnes.reduce((s, x) => s + x.dur, 0) >= priorMin * 60;
   const src = useFlat ? flatOnes : samples;
   const flat = weightedMedian(
-    src.map((s) => s.speed / baselineFactor(s.grade)),
-    src.map((s) => s.dur),
+    src.map((s) => s.speed / baseline(s.grade)),
+    src.map(weight),
   );
   const grades = gradeBins();
   const speeds: number[] = [];
@@ -159,15 +205,17 @@ export function fitCurve(samples: Sample[]): Curve | null {
   for (const c of grades) {
     const inBin = samples.filter((s) => s.grade >= c - BIN / 2 && s.grade < c + BIN / 2);
     const secs = inBin.reduce((s, x) => s + x.dur, 0);
-    const base = flat * baselineFactor(c);
+    const base = flat * baseline(c);
     counts.push(secs);
     if (secs === 0) {
       speeds.push(base);
       continue;
     }
-    const obs = weightedMedian(inBin.map((s) => s.speed), inBin.map((s) => s.dur));
-    const n = secs / 60;
-    speeds.push((n * obs + PRIOR_MIN * base) / (n + PRIOR_MIN));
+    const w = inBin.map(weight);
+    const obs = weightedMedian(inBin.map((s) => s.speed), w);
+    // Le volume compte en minutes « effectives » (pondérées), comparé à l'a priori.
+    const n = (w.reduce((a, b) => a + b, 0) / Math.max(1e-9, inBin.reduce((a, s) => a + s.dur, 0))) * (secs / 60);
+    speeds.push((n * obs + priorMin * base) / (n + priorMin));
   }
 
   // Lissage léger (3 classes), puis contrainte de monotonie en montée.

@@ -13,6 +13,7 @@ import { readTrackFiles } from './ui/files';
 import { curveChart, profileChart } from './ui/charts';
 import { clock, esc, hm, km1, m0, num, pace, parseHm, signedHm } from './ui/format';
 import { getLang, setLang, t } from './ui/i18n';
+import * as store from './ui/store';
 
 interface AidRow {
   name: string;
@@ -25,7 +26,9 @@ interface AidRow {
 const state = {
   course: null as null | { name: string; profile: Profile },
   history: null as null | { samples: Sample[]; used: number; skipped: number; seconds: number },
-  flatKmh: 10,
+  /** Temps de référence sur route, utilisé tant qu'on n'a pas de sorties. */
+  refKm: 10,
+  refTime: '0:55',
   start: defaultStart(),
   mode: 'predict' as 'predict' | 'target',
   effort: 1,
@@ -55,7 +58,18 @@ function curve(): Curve {
     if (!fitted || fitted.key !== h || fitted.n !== h.samples.length) fitted = { key: h, n: h.samples.length, curve: fitCurve(h.samples) };
     if (fitted.curve) return fitted.curve;
   }
-  return baselineCurve(state.flatKmh / 3.6);
+  return baselineCurve(refFlatSpeed());
+}
+
+/**
+ * Vitesse sur le plat (m/s) déduite d'un temps de référence sur route.
+ * La loi de Riegel (T ∝ D^1.06) ramène cette vitesse à un effort d'environ 1 h 30,
+ * durée à partir de laquelle le modèle de fatigue prend le relais.
+ */
+function refFlatSpeed(): number {
+  const sec = parseHm(state.refTime) ?? 3300;
+  const v = (state.refKm * 1000) / Math.max(600, sec);
+  return v * Math.pow(sec / 5400, 1 - 1 / 1.06);
 }
 
 /** Convertit les barrières "HH:MM" en heures depuis le départ, chacune après la précédente. */
@@ -165,6 +179,13 @@ function loadDemo() {
 // ---------- Rendu ----------
 
 /** Silhouette de montagne en pointillés pour la zone de dépôt du parcours. */
+const REF_DISTANCES = [
+  { km: 5, label: () => '5 km' },
+  { km: 10, label: () => '10 km' },
+  { km: 21.0975, label: () => t().half },
+  { km: 42.195, label: () => t().marathon },
+];
+
 const EMPTY_RIDGE = `<svg class="ridge" viewBox="0 0 600 120" preserveAspectRatio="none" aria-hidden="true">
   <path d="M0 110 L60 96 L95 70 L130 82 L180 34 L215 52 L250 44 L300 92 L345 78 L380 40 L410 12 L445 48 L490 60 L530 86 L600 104"/></svg>`;
 
@@ -207,6 +228,8 @@ function render() {
   }
 
   <div class="workspace">
+    <section class="plan" id="plan" aria-labelledby="h-plan">${plan ? planHtml(plan, startMs) : `<h2 id="h-plan">${esc(T.planTitle)}</h2><p class="hint">${esc(T.planEmpty)}</p>`}</section>
+
     <div class="settings">
       <section aria-labelledby="h-history">
         <h2 id="h-history">${esc(T.historyTitle)}</h2>
@@ -231,7 +254,12 @@ function render() {
         ${
           !c.personal
             ? `<p class="hint">${esc(T.noHistory)}</p>
-               <label class="field"><span>${esc(T.flatSpeed)}</span><input type="number" id="flat" min="4" max="20" step="0.5" value="${state.flatKmh}"></label>`
+               <div class="ref">
+                 <label class="field"><span>${esc(T.refDist)}</span>
+                   <select id="ref-km">${REF_DISTANCES.map((d) => `<option value="${d.km}" ${d.km === state.refKm ? 'selected' : ''}>${esc(d.label())}</option>`).join('')}</select></label>
+                 <label class="field"><span>${esc(T.refTime)}</span><input type="text" id="ref-time" value="${esc(state.refTime)}" inputmode="numeric" placeholder="0:55" size="6"></label>
+               </div>
+               <p class="hint">${esc(T.flatMeasured(num(c.flat * 3.6, 1)))}</p>`
             : ''
         }
         <h3>${esc(T.curveTitle)}</h3>
@@ -279,18 +307,23 @@ function render() {
       </section>
     </div>
 
-    <section class="plan" id="plan" aria-labelledby="h-plan">${plan ? planHtml(plan, startMs) : `<h2 id="h-plan">${esc(T.planTitle)}</h2><p class="hint">${esc(T.planEmpty)}</p>`}</section>
   </div>
 
   <footer>
     <p>${esc(T.model)}</p>
+    <p>${esc(T.saved)} <button class="textbtn quiet-btn" id="reset">${esc(T.reset)}</button></p>
     <p>${esc(T.footer)} <a href="https://github.com/mat-d3v/ravito">${esc(T.source)}</a></p>
   </footer>
+  <div class="dropover" id="dropover" hidden>
+    <div class="dropover-zone" data-target="course"><b>${esc(T.overCourse)}</b><span>${esc(T.overCourseSub)}</span></div>
+    <div class="dropover-zone" data-target="history"><b>${esc(T.overRuns)}</b><span>${esc(T.overRunsSub)}</span></div>
+  </div>
   ${plan ? bandHtml(plan, startMs) : ''}`;
 
   if (state.course) profileChart(document.querySelector('#profile')!, state.course.profile, plan, startMs);
   curveChart(document.querySelector('#curve')!, c, baselineCurve(c.flat));
   bind(plan, startMs);
+  scheduleSave();
 }
 
 function enduranceLabel() {
@@ -331,6 +364,7 @@ function planHtml(plan: Plan, startMs: number): string {
       <p class="bib-sub">${esc(T.totalTime(hm(total), hm(stops)))}</p>
     </div>
     <p class="hint effort-used">${esc(T.effortUsed(Math.round(plan.effort * 100), curve().personal))}</p>
+    ${curve().personal ? '' : `<p class="nudge">${esc(T.nudgeBefore)} <button class="textbtn" id="goto-history">${esc(T.nudgeAction)}</button> ${esc(T.nudgeAfter)}</p>`}
     <h3 class="roadbook-title" id="roadbook-cap">${esc(T.roadbook)}</h3>
     <div class="table-wrap" tabindex="0" role="region" aria-labelledby="roadbook-cap">
       <table class="roadbook" aria-labelledby="roadbook-cap">
@@ -389,11 +423,55 @@ function wireDrop(id: string, onFiles: (f: File[]) => void) {
   el.addEventListener('dragleave', () => el.classList.remove('over'));
   el.addEventListener('drop', async (e) => {
     e.preventDefault();
+    e.stopPropagation();
     el.classList.remove('over');
-    // Les entrées doivent être lues pendant l'événement, avant tout await.
-    const entries = [...(e.dataTransfer?.items ?? [])].map((i) => i.webkitGetAsEntry?.()).filter((x): x is FileSystemEntry => !!x);
-    const files = entries.length ? await filesFromEntries(entries) : [...(e.dataTransfer?.files ?? [])];
+    hideOverlay();
+    const files = await filesFromDrop(e);
     if (files.length) onFiles(files);
+  });
+}
+
+/** Fichiers d'un dépôt, dossiers compris. Les entrées doivent être lues pendant l'événement, avant tout await. */
+function filesFromDrop(e: DragEvent): Promise<File[]> {
+  const entries = [...(e.dataTransfer?.items ?? [])].map((i) => i.webkitGetAsEntry?.()).filter((x): x is FileSystemEntry => !!x);
+  return entries.length ? filesFromEntries(entries) : Promise.resolve([...(e.dataTransfer?.files ?? [])]);
+}
+
+// Dépôt n'importe où sur la page : un panneau propose les deux destinations.
+let dragDepth = 0;
+const overlay = () => document.getElementById('dropover');
+function hideOverlay() {
+  dragDepth = 0;
+  const o = overlay();
+  if (o) o.hidden = true;
+}
+function wireOverlay() {
+  const hasFiles = (e: DragEvent) => [...(e.dataTransfer?.types ?? [])].includes('Files');
+  window.addEventListener('dragenter', (e) => {
+    if (!hasFiles(e)) return;
+    dragDepth++;
+    const o = overlay();
+    if (o) o.hidden = false;
+  });
+  window.addEventListener('dragleave', (e) => {
+    if (!hasFiles(e)) return;
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (dragDepth === 0) hideOverlay();
+  });
+  window.addEventListener('dragover', (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    document.querySelectorAll('.dropover-zone').forEach((z) => z.classList.toggle('over', z.contains(e.target as Node)));
+  });
+  window.addEventListener('drop', async (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    const zone = (e.target as HTMLElement).closest<HTMLElement>('.dropover-zone');
+    const files = await filesFromDrop(e);
+    hideOverlay();
+    if (!zone || !files.length) return;
+    if (zone.dataset.target === 'course') loadCourse(files);
+    else loadHistory(files);
   });
 }
 
@@ -433,11 +511,39 @@ function refreshPlan() {
   app.insertAdjacentHTML('beforeend', bandHtml(plan, startMs));
   if (state.course) profileChart(document.querySelector('#profile')!, state.course.profile, plan, startMs);
   bindPlan(plan, startMs);
+  scheduleSave();
 }
 
 function bindPlan(plan: Plan, startMs: number) {
   document.querySelector('#csv')?.addEventListener('click', () => exportCsv(plan, startMs));
   document.querySelector('#print')?.addEventListener('click', () => window.print());
+  document.querySelector('#goto-history')?.addEventListener('click', () => {
+    const zone = document.querySelector<HTMLElement>('#drop-history');
+    zone?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+    zone?.querySelector('input')?.focus();
+  });
+}
+
+// ---------- Sauvegarde locale ----------
+
+const SETTINGS = ['refKm', 'refTime', 'start', 'mode', 'effort', 'target', 'endurance', 'aid'] as const;
+let saveTimer = 0;
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = window.setTimeout(() => {
+    const settings: Record<string, unknown> = {};
+    for (const k of SETTINGS) settings[k] = state[k];
+    store.save({ course: state.course, history: state.history, settings });
+  }, 400);
+}
+
+function restore() {
+  const saved = store.load();
+  if (!saved) return;
+  state.course = saved.course;
+  state.history = saved.history;
+  const st = saved.settings as Partial<typeof state>;
+  for (const k of SETTINGS) if (st[k] !== undefined) (state as Record<string, unknown>)[k] = st[k];
 }
 
 /** Remplissage de la piste des curseurs (WebKit n'a pas d'équivalent à ::-moz-range-progress). */
@@ -466,8 +572,23 @@ function bind(plan: Plan | null, startMs: number) {
     state.history = null;
     render();
   });
-  $<HTMLInputElement>('#flat')?.addEventListener('change', (e) => {
-    state.flatKmh = Math.max(3, Math.min(25, Number((e.target as HTMLInputElement).value) || 10));
+  $<HTMLSelectElement>('#ref-km')?.addEventListener('change', (e) => {
+    state.refKm = Number((e.target as HTMLSelectElement).value);
+    render();
+    $<HTMLSelectElement>('#ref-km')?.focus();
+  });
+  $<HTMLInputElement>('#ref-time')?.addEventListener('change', (e) => {
+    const v = (e.target as HTMLInputElement).value;
+    if (parseHm(v)) state.refTime = v.trim();
+    render();
+    $<HTMLInputElement>('#ref-time')?.focus();
+  });
+  $('#reset')?.addEventListener('click', () => {
+    if (!confirm(t().resetConfirm)) return;
+    store.clear();
+    state.course = null;
+    state.history = null;
+    state.aid = [];
     render();
   });
   $<HTMLInputElement>('#start')?.addEventListener('change', (e) => {
@@ -542,4 +663,8 @@ const langParam = params.get('lang');
 if (langParam === 'fr' || langParam === 'en') setLang(langParam);
 document.documentElement.lang = getLang();
 if (params.has('demo')) loadDemo();
-else render();
+else {
+  restore();
+  render();
+}
+wireOverlay();

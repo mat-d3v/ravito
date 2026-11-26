@@ -207,3 +207,32 @@ describe('historique : marches et récence', () => {
     expect(flatWeights.flat).toBeLessThan(3.2);
   });
 });
+
+describe('API Strava (version locale)', () => {
+  it('convertit les flux Strava en points horodatés', async () => {
+    const { pointsFromStreams } = await import('./strava');
+    const pts = pointsFromStreams(Date.UTC(2026, 0, 1), {
+      latlng: { data: [[45, 6], [45.001, 6]] },
+      altitude: { data: [1000, 1005] },
+      time: { data: [0, 30] },
+    });
+    expect(pts).toEqual([
+      { lat: 45, lon: 6, ele: 1000, time: Date.UTC(2026, 0, 1) },
+      { lat: 45.001, lon: 6, ele: 1005, time: Date.UTC(2026, 0, 1) + 30_000 },
+    ]);
+    expect(pointsFromStreams(0, {})).toEqual([]);
+  });
+
+  it('lit les quotas et garde le plus contraignant', async () => {
+    const { parseRateLimit, nextQuarterHour } = await import('./strava');
+    const h: Record<string, string> = {
+      'x-ratelimit-limit': '200,2000',
+      'x-ratelimit-usage': '10,100',
+      'x-readratelimit-limit': '100,1000',
+      'x-readratelimit-usage': '95,120',
+    };
+    expect(parseRateLimit((n) => h[n] ?? null)).toEqual({ limit15: 100, limitDay: 1000, used15: 95, usedDay: 120 });
+    expect(parseRateLimit(() => null)).toBeNull();
+    expect(nextQuarterHour(Date.UTC(2026, 0, 1, 10, 7))).toBe(Date.UTC(2026, 0, 1, 10, 15));
+  });
+});

@@ -51,6 +51,25 @@ Watch makers (Garmin PacePro, COROS Pace Strategy) and a few web tools already s
 
 More in [Strava's help](https://support.strava.com/en-us/articles/15401919-how-do-i-export-my-strava-data). Files from Garmin Connect, COROS or Suunto work too: export them as GPX, TCX or FIT.
 
+## Connecting Strava directly (local version)
+
+For people comfortable with a terminal: instead of waiting for the export email, Ravito can read your runs straight from the Strava API. It runs on your own machine, with your own Strava API application, so no third-party server ever sees your data or your keys.
+
+1. Create your Strava API application at [strava.com/settings/api](https://www.strava.com/settings/api). Any name works; set **Authorization Callback Domain** to `127.0.0.1`.
+2. In this folder, run:
+   ```bash
+   npm install
+   npm run strava
+   ```
+3. On first run, paste your Client ID and Client Secret (or set `STRAVA_CLIENT_ID` and `STRAVA_CLIENT_SECRET`). Ravito opens in your browser at `http://127.0.0.1:5180`.
+4. Click **Connect to Strava**, allow access, and your recent runs load on their own.
+
+Good to know:
+- Only runs are fetched (Run and Trail Run, the 200 most recent; change it with `npm run strava -- --max=300`). Each run is downloaded once, then kept in a local cache.
+- Strava limits how many requests an app can make every 15 minutes. If you hit the limit, Ravito pauses and resumes on its own.
+- Credentials, tokens and cache live in `~/.config/ravito` (or `RAVITO_HOME`). `npm run strava -- --forget` deletes them all.
+- New Strava API apps only accept their own owner ("Single Player Mode"): that's exactly this use, so no review by Strava is needed.
+
 ## How the model works
 
 1. **Course**: the track is resampled every 25 m and the elevation smoothed over 150 m before grades are computed.

@@ -176,6 +176,92 @@ function loadDemo() {
   render();
 }
 
+// ---------- Strava (version locale, `npm run strava`) ----------
+
+/** Vrai quand Ravito est servi par le serveur local Strava (scripts/strava.ts). */
+const STRAVA_LOCAL = new URLSearchParams(location.search).get('strava') === 'local';
+
+interface StravaStatus {
+  connected: boolean;
+  athlete: string | null;
+  state: 'idle' | 'syncing' | 'ready' | 'error';
+  done: number;
+  total: number;
+  waitUntil: number;
+  error: string;
+}
+
+let strava: StravaStatus | null = null;
+let stravaLoaded = false;
+let stravaUnreachable = false;
+const stravaDenied = new URLSearchParams(location.search).has('strava_error');
+
+function stravaBoxHtml(): string {
+  const T = t();
+  if (stravaUnreachable) return `<p class="warn">${esc(T.stravaError)}</p><button class="secondary" id="strava-retry">${esc(T.stravaRetry)}</button>`;
+  if (!strava) return `<p class="hint">${esc(T.stravaListing)}</p>`;
+  if (!strava.connected)
+    return `${stravaDenied ? `<p class="warn">${esc(T.stravaDenied)}</p>` : ''}
+      <a class="strava-connect" href="/strava/login">${esc(T.stravaConnect)}</a>
+      <p class="hint">${esc(T.stravaIntro)}</p>`;
+  if (strava.state === 'syncing') {
+    const paused = strava.waitUntil > Date.now()
+      ? `<p class="hint">${esc(T.stravaPaused(new Date(strava.waitUntil).toLocaleTimeString(getLang(), { hour: '2-digit', minute: '2-digit' })))}</p>`
+      : '';
+    return strava.total
+      ? `<p>${esc(T.stravaSyncing(strava.done, strava.total))}</p><progress max="${strava.total}" value="${strava.done}"></progress>${paused}`
+      : `<p>${esc(T.stravaListing)}</p>${paused}`;
+  }
+  if (strava.state === 'error') return `<p class="warn">${esc(T.stravaError)}</p><button class="secondary" id="strava-refresh">${esc(T.stravaRetry)}</button>`;
+  if (strava.state === 'ready') return `<p>${esc(T.stravaReady(strava.athlete))}</p><button class="secondary" id="strava-refresh">${esc(T.stravaRefresh)}</button>`;
+  return `<p class="hint">${esc(T.stravaListing)}</p>`;
+}
+
+/** Met à jour le seul bloc Strava (sans reconstruire la page, pour ne pas perdre le focus). */
+function paintStravaBox() {
+  const box = document.querySelector('#strava-box');
+  if (!box) return;
+  box.innerHTML = stravaBoxHtml();
+  document.querySelector('#strava-refresh')?.addEventListener('click', async () => {
+    stravaLoaded = false;
+    await fetch('/strava/sync', { method: 'POST' }).catch(() => undefined);
+    pollStrava();
+  });
+  document.querySelector('#strava-retry')?.addEventListener('click', () => {
+    stravaUnreachable = false;
+    pollStrava();
+  });
+}
+
+let pollTimer = 0;
+async function pollStrava() {
+  clearTimeout(pollTimer);
+  try {
+    const res = await fetch('/strava/status', { cache: 'no-store' });
+    if (!res.ok) throw new Error(String(res.status));
+    strava = (await res.json()) as StravaStatus;
+    stravaUnreachable = false;
+  } catch {
+    stravaUnreachable = true;
+    paintStravaBox();
+    return;
+  }
+  if (strava.state === 'ready' && !stravaLoaded) {
+    const res = await fetch('/strava/samples', { cache: 'no-store' }).catch(() => null);
+    if (res?.ok) {
+      const data = (await res.json()) as NonNullable<typeof state.history>;
+      state.history = { samples: data.samples, used: data.used, skipped: data.skipped, seconds: data.seconds };
+      stravaLoaded = true;
+      render();
+      scheduleSave();
+    }
+  }
+  paintStravaBox();
+  // On interroge souvent pendant le téléchargement, et pas du tout une fois les sorties chargées.
+  if (strava.state === 'syncing' || (strava.state === 'ready' && !stravaLoaded)) pollTimer = window.setTimeout(pollStrava, 1500);
+  else if (!strava.connected) pollTimer = window.setTimeout(pollStrava, 5000);
+}
+
 // ---------- Rendu ----------
 
 /** Silhouette de montagne en pointillés pour la zone de dépôt du parcours. */
@@ -234,6 +320,7 @@ function render() {
       <section aria-labelledby="h-history">
         <h2 id="h-history">${esc(T.historyTitle)}</h2>
         <p class="hint">${esc(T.historyHint)}</p>
+        ${STRAVA_LOCAL ? `<div id="strava-box" class="strava-box" aria-live="polite">${stravaBoxHtml()}</div>` : ''}
         <details class="how">
           <summary>${esc(T.exportHow)}</summary>
           <ol>${T.exportSteps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
@@ -655,6 +742,7 @@ function bind(plan: Plan | null, startMs: number) {
     document.querySelector<HTMLInputElement>(`.aid-table tr[data-i="${state.aid.length - 1}"] input`)?.focus();
   });
   if (plan) bindPlan(plan, startMs);
+  paintStravaBox();
 }
 
 // ?lang=fr|en force la langue, ?demo charge directement la démo (lien partageable).
@@ -668,3 +756,4 @@ else {
   render();
 }
 wireOverlay();
+if (STRAVA_LOCAL) pollStrava();

@@ -499,3 +499,19 @@ button.quiet-btn { font-weight: 400; color: var(--ink-2); }
 .dropover-zone.over { border-style: solid; background: var(--signal); color: var(--on-signal); }
 .dropover-zone.over span { color: var(--on-signal); }
 @media (max-width: 599px) { .dropover { grid-template-columns: 1fr; } }
+
+/* Bloc Strava (version locale) */
+.strava-box { margin: 0.75rem 0; display: grid; gap: 0.5rem; justify-items: start; }
+.strava-box p { margin: 0; }
+.strava-box progress { width: 100%; height: 0.5rem; accent-color: var(--ink); }
+a.strava-connect {
+  display: inline-block;
+  font: 600 1rem/1.2 var(--text);
+  color: var(--paper);
+  background: var(--ink);
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+  padding: 0.6rem 1rem;
+  text-decoration: none;
+}
+a.strava-connect:hover { background: transparent; color: var(--ink); }
